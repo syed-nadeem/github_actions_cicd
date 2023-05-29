@@ -1,0 +1,51 @@
+name: Django Github Action
+
+on:
+  push:
+    branches:
+      - staging
+  pull_request:
+    pull_request:
+      types:
+        - synchronize
+        - opened
+      branches:
+        - staging
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.10" ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Python Version ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.6.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - run: npm install
+      - run: npm run build
+        env:
+          DOTENV_KEY: ${{ secrets.DOTENV_KEY }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Lint the code
+        run: |
+          flake8 . --extend-exclude=dist,build,static,migrations,env,venv --ignore=E501,F811
+
+      - name: Run Unit tests cases
+        run: |
+          python manage.py test
+        
+          
